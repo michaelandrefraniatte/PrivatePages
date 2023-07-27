@@ -1,0 +1,197 @@
+﻿<head>
+
+    <meta charset="UTF-8">
+    <meta name="description" content="A stream chat for receiving and posting comments while streaming on twitch, achieved with JavaScript.">
+    <meta name="keywords" content="stream, chat, twitch">
+    <meta name="author" content="MICHAEL ANDRE FRANIATTE">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" type="image/png" href="img/favicon.png" />
+    <meta name="google-site-verification" content="7cncMfoTo9D6fhKexNpS1eSgDPB9dqBjn4KojNDuHR0" />
+
+    <title>Michael Franiatte PP</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <style>
+
+                /*
+        *
+        * ==========================================
+        * CUSTOM UTIL CLASSES
+        * ==========================================
+        *
+        */
+
+                body {
+                    font-family: sans-serif;
+                    background-color: #222222;
+                    color: #FFFFFF;
+                    overflow-y: hidden;
+                }
+
+                .row > .col-lg-4,
+                .col-6 {
+                    padding: 0;
+                }
+
+                #onair {
+                    position: absolute;
+                    background-color: #9147FF;
+                    outline: none;
+                    border-radius: 100%;
+                    border: none;
+                    width: 15px;
+                    height: 15px;
+                    left: 20px;
+                    top: 20px;
+                }
+
+                .folderopen {
+                    cursor: pointer;
+                    text-align: center;
+                    color: white;
+                    overflow: hidden;
+                }
+
+                .icon-upload > input {
+                    display: none;
+                }
+    </style>
+</head>
+<body id="page-top">
+
+    <!-- Chat container -->
+    <div class="chat-container">
+    </div>
+
+    <!-- Onair container -->
+    <div class="onair-container" id="onair">
+    </div>
+
+    <!-- Open container -->
+    <div class="open-container">
+        <div class="icon-upload" style="display:float;">
+            <label for="txtFileInput">
+                <div class="bg-light folderopen" style="display:float;position:absolute;left:15px;bottom:10px;">
+                    <i class="fa fa-folder-open" title="open favours"></i>
+                </div>
+            </label>
+            <input type="file" id="txtFileInput" onchange="handleFiles(this.files)" accept=".txt">
+        </div>
+    </div>
+
+    <script>
+
+var channel = "";
+var parent = "michaelfraniatte.github.io";
+var userid = "";
+var clientid = "";
+var resy = window.screen.availHeight - 70;
+var element = document.getElementById("onair");
+
+function changeTitle() {
+    document.title = "streamchat by michael franiatte";
+}
+
+$(function() {
+    changeTitle();
+    var getitem = localStorage.getItem("streamchat");
+    if (getitem == "" | getitem == null | getitem == "undefined") {
+        localStorage.setItem("streamchat", "[]");
+    }
+    var obj = JSON.parse(getitem);
+    channel = obj.channel;
+    clientid = obj.clientid;
+    createChat();
+    getId();
+});
+
+function createChat() {
+    var htmlString = "";
+    htmlString += `<iframe src="https://www.twitch.tv/embed/${channel}/chat?darkpopout&parent=${parent}" height="` + resy + `" width="100%"></iframe>`;
+    $(".chat-container").append(htmlString);
+}
+
+function getId() {
+    $.ajax({
+            type: 'GET',
+            url: "https://api.twitch.tv/kraken/users?login=" + channel,
+            headers: {
+            'Client-ID': clientid,
+            'Accept': 'application/vnd.twitchtv.v5+json'
+            },
+            success: function(datas) {
+                data = datas["users"];
+                user = data[0];
+                userid = user["_id"];
+                onAir();
+                setInterval(function(){
+                onAir();
+            }, 10000);
+        }
+    });
+}
+
+function onAir() {
+    $.ajax({
+        type: 'GET',
+        url: "https://api.twitch.tv/kraken/streams/" + userid,
+        headers: {
+            'Client-ID': clientid,
+            'Accept': 'application/vnd.twitchtv.v5+json'
+        },
+        success: function(data) {
+            if (data.stream == null) {      
+                element.style.display = "none";
+            }
+            else {
+                $("#onair").css("display", "");
+            }
+        }
+    });
+}
+
+$(function() {
+    $("#txtFileInput").click(function(){
+        $(this).val("");
+    });
+});
+
+function handleFiles(files) {
+	getAsText(files[0]); 
+}
+
+function getAsText(fileToRead) {
+	var reader = new FileReader();
+	reader.onload = loadHandler;
+	reader.onerror = errorHandler;   
+	reader.readAsText(fileToRead);
+}
+
+function loadHandler(event) {
+	var txt = event.target.result;
+	processData(txt);     
+}
+
+function errorHandler(evt) {
+	if(evt.target.error.name == "NotReadableError") {
+		alert("Canno't read file !");
+	}
+}
+
+function processData(txt) {
+    var allTextLines = txt.split(/\r\n|\n/);
+    var lines = [];
+    while (allTextLines.length) {
+        lines.push(allTextLines.shift().split(','));
+    }
+    localStorage.setItem("streamchat", JSON.stringify({channel: lines[1][0], clientid: lines[3][0]}));
+    location.reload();
+}
+
+    </script>
+
+</body>

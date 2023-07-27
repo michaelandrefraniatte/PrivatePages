@@ -1,0 +1,2 @@
+Tutorial, https://www.youtube.com/watch?v=PXA54_i0Kmo
+To add right to a client, allow read to a repository to this client, who create with his account the credential.
